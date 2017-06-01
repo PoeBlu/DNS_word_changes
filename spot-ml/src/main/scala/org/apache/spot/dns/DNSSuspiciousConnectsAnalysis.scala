@@ -21,7 +21,8 @@ import org.apache.log4j.Logger
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql.{DataFrame, SaveMode, SQLContext, Row}
+import org.apache.spark.sql.hive.HiveContext
 import org.apache.spot.SuspiciousConnectsArgumentParser.SuspiciousConnectsConfig
 import org.apache.spot.dns.DNSSchema._
 import org.apache.spot.dns.model.DNSSuspiciousConnectsModel
@@ -79,6 +80,8 @@ object DNSSuspiciousConnectsAnalysis {
         StructField("dnsRecordID", StringType),
         StructField("score",DoubleType),
         StructField("index",StringType)))
+
+    val hiveContext = new HiveContext(sparkContext)
 
     val indexDF = hiveContext.createDataFrame(scoredWithIndexRDD, newDFStruct)
     val attackOnlyIndexDF = indexDF.filter(PositiveAttackFilter)
