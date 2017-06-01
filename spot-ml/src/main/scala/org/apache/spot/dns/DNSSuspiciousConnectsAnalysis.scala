@@ -221,4 +221,16 @@ object DNSSuspiciousConnectsAnalysis {
       QueryResponseCodeField,
       ScoreField)).fieldNames.map(col)
 
+<<<<<<< Updated upstream
+=======
+  /*    Below is a filter for pulling attack rows out of dns data   */
+
+  val PositiveAttackFilter =
+    s"(dnsRecordID = '0x000003ea') " +
+    s"OR (dnsRecordID = '0x000003eb') " +
+    s"OR (dnsRecordID = '0x000003e9') " +
+    s"OR (dnsRecordID = '0x000003ed') " +
+    s"OR (dnsRecordID = '0x000003ef') "
+
+>>>>>>> Stashed changes
 }
