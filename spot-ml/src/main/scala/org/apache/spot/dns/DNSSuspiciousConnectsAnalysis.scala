@@ -57,6 +57,41 @@ object DNSSuspiciousConnectsAnalysis {
 
     val scoredDNSRecords = scoreDNSRecords(cleanDNSRecords, config, sparkContext, sqlContext, logger)
 
+
+
+    // ...............................below is code to rank attack rows of the dns data
+
+    logger.info("Indexing scored results")
+
+    val scoredWithIndexMapRDD = scoredDNSRecords.orderBy(Score).rdd.zipWithIndex()
+    val scoredWithIndexRDD = scoredWithIndexMapRDD.map({case (row: Row, index: Long) => Row.fromSeq(row.toSeq ++ Array(index.toString))})
+
+    val newDFStruct = new StructType(
+      Array(
+        StructField("timeStamp", StringType),
+        StructField("unixTimeStamp", LongType),
+        StructField("frameLength",IntegerType),
+        StructField("clientIP",StringType),
+        StructField("queryName",StringType),
+        StructField("queryClass",StringType),
+        StructField("queryType",IntegerType),
+        StructField("queryResponseCode",IntegerType),
+        StructField("dnsRecordID", StringType),
+        StructField("score",DoubleType),
+        StructField("index",StringType)))
+
+    val indexDF = hiveContext.createDataFrame(scoredWithIndexRDD, newDFStruct)
+    val attackOnlyIndexDF = indexDF.filter(PositiveAttackFilter)
+
+    logger.info(indexDF.count.toString)
+    logger.info("Saving results to : brandon_dns_spark")
+
+    attackOnlyIndexDF.write.mode(SaveMode.Overwrite).saveAsTable("`brandon_dns_spark`")
+
+    // ........................................above is code to rank arrack rows
+
+
+
     val filteredDNSRecords = filterScoredDNSRecords(scoredDNSRecords, config.threshold)
 
     val orderedDNSRecords = filteredDNSRecords.orderBy(Score)
@@ -221,8 +256,7 @@ object DNSSuspiciousConnectsAnalysis {
       QueryResponseCodeField,
       ScoreField)).fieldNames.map(col)
 
-<<<<<<< Updated upstream
-=======
+
   /*    Below is a filter for pulling attack rows out of dns data   */
 
   val PositiveAttackFilter =
@@ -232,5 +266,4 @@ object DNSSuspiciousConnectsAnalysis {
     s"OR (dnsRecordID = '0x000003ed') " +
     s"OR (dnsRecordID = '0x000003ef') "
 
->>>>>>> Stashed changes
 }
