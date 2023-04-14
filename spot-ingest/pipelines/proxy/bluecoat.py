@@ -78,9 +78,7 @@ def main():
 
 def spot_decoder(s):
 
-    if s is None:
-        return None
-    return s
+    return None if s is None else s
 
 def split_log_entry(line):
 

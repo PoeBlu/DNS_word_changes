@@ -93,13 +93,11 @@ class KafkaTopic(object):
 
     @property
     def Zookeeper(self):
-        zk = "{0}:{1}".format(self._zk_server,self._zk_port)
-        return zk
+        return "{0}:{1}".format(self._zk_server,self._zk_port)
 
     @property
     def BootstrapServers(self):
-        servers = "{0}:{1}".format(self._server,self._port) 
-        return servers
+        return "{0}:{1}".format(self._server,self._port)
 
 
 class KafkaConsumer(object):

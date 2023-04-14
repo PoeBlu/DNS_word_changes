@@ -86,42 +86,42 @@ class Collector(object):
        
         if self._watcher.HasFiles:
             
-            for x in range(0,self._processes):
+            for _ in range(self._processes):
                 file = self._watcher.GetNextFile()
                 resutl = self._pool.apply_async(ingest_file,args=(file,self._kafka_topic.Partition,self._hdfs_root_path ,self._kafka_topic.Topic,self._kafka_topic.BootstrapServers,))
                 #resutl.get() # to debug add try and catch.
-                if  not self._watcher.HasFiles: break    
+                if  not self._watcher.HasFiles: break
         return True
     
 
 
 def ingest_file(file,partition,hdfs_root_path,topic,kafka_servers):
 
-        logger = logging.getLogger('SPOT.INGEST.FLOW.{0}'.format(os.getpid()))
+    logger = logging.getLogger('SPOT.INGEST.FLOW.{0}'.format(os.getpid()))
 
-        try:
+    try:
 
-            # get file name and date.
-            file_name_parts = file.split('/')
-            file_name = file_name_parts[len(file_name_parts)-1]
-            file_date = file_name.split('.')[1]
+        # get file name and date.
+        file_name_parts = file.split('/')
+        file_name = file_name_parts[len(file_name_parts)-1]
+        file_date = file_name.split('.')[1]
 
-            file_date_path = file_date[0:8]
-            file_date_hour = file_date[8:10]
+        file_date_path = file_date[:8]
+        file_date_hour = file_date[8:10]
 
-            # hdfs path with timestamp.
-            hdfs_path = "{0}/binary/{1}/{2}".format(hdfs_root_path,file_date_path,file_date_hour)
-            Util.creat_hdfs_folder(hdfs_path,logger)
+        # hdfs path with timestamp.
+        hdfs_path = "{0}/binary/{1}/{2}".format(hdfs_root_path,file_date_path,file_date_hour)
+        Util.creat_hdfs_folder(hdfs_path,logger)
 
-            # load to hdfs.
-            hdfs_file = "{0}/{1}".format(hdfs_path,file_name)
-            Util.load_to_hdfs(file,hdfs_file,logger)
+        # load to hdfs.
+        hdfs_file = "{0}/{1}".format(hdfs_path,file_name)
+        Util.load_to_hdfs(file,hdfs_file,logger)
 
-            # create event for workers to process the file.
-            logger.info("Sending file to worker number: {0}".format(partition))
-            KafkaTopic.SendMessage(hdfs_file,kafka_servers,topic,partition)    
-            logger.info("File {0} has been successfully sent to Kafka Topic to: {1}".format(file,topic))
+        # create event for workers to process the file.
+        logger.info("Sending file to worker number: {0}".format(partition))
+        KafkaTopic.SendMessage(hdfs_file,kafka_servers,topic,partition)
+        logger.info("File {0} has been successfully sent to Kafka Topic to: {1}".format(file,topic))
 
-        except Exception as err:
-            logger.error("There was a problem, please check the following error message:{0}".format(err.message))
-            logger.error("Exception: {0}".format(err))
+    except Exception as err:
+        logger.error("There was a problem, please check the following error message:{0}".format(err.message))
+        logger.error("Exception: {0}".format(err))

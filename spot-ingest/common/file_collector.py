@@ -53,10 +53,13 @@ class FileWatcher(object):
 
         # Validate the file is supported.        
         collected_file_parts = file.split("/")
-        collected_file = collected_file_parts[len(collected_file_parts) -1 ]    
-        if (collected_file.endswith(tuple(self._supported_files)) or collected_file.startswith(tuple(self._supported_files))  ) and not  ".current" in collected_file:                   
+        collected_file = collected_file_parts[len(collected_file_parts) -1 ]
+        if (
+            collected_file.endswith(tuple(self._supported_files))
+            or collected_file.startswith(tuple(self._supported_files))
+        ) and ".current" not in collected_file:                   
             self._files_queue.put(file)
-            self._logger.info("File {0} added to the queue".format(file))                        
+            self._logger.info("File {0} added to the queue".format(file))
         else:
             self._logger.warning("File extension not supported: {0}".format(file))
             self._logger.warning("File won't be ingested")  

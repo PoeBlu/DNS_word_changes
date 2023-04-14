@@ -94,7 +94,7 @@ class Util(object):
 		result_rows = []
 		with open(file, 'rb') as results_file:
 			csv_reader = csv.reader(results_file, delimiter = delimiter)
-			for i in range(0, int(limit)):
+			for _ in range(int(limit)):
 				try:
 					row = csv_reader.next()
 				except StopIteration:
@@ -103,13 +103,11 @@ class Util(object):
 		return result_rows
 
 	@classmethod
-	def ip_to_int(self,ip):
+	def ip_to_int(cls, ip):
 		
 		try:
 			o = map(int, ip.split('.'))
-			res = (16777216 * o[0]) + (65536 * o[1]) + (256 * o[2]) + o[3]
-			return res    
-
+			return (16777216 * o[0]) + (65536 * o[1]) + (256 * o[2]) + o[3]
 		except ValueError:
 			return None
 	
@@ -127,13 +125,12 @@ class SecHead(object):
         self.sechead = '[conf]\n'
 
     def readline(self):
-        if self.sechead:
-            try: 
-                return self.sechead
-            finally: 
-                self.sechead = None
-        else: 
-            return self.fp.readline()
+    	if not self.sechead:
+    		return self.fp.readline()
+    	try: 
+    	    return self.sechead
+    	finally: 
+    	    self.sechead = None
 
 class ProgressBar(object):
 

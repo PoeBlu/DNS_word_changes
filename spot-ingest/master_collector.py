@@ -47,12 +47,12 @@ def start_collector(type,workers_num,id=None):
 
     # generate ingest id
     ingest_id = str(datetime.datetime.time(datetime.datetime.now())).replace(":","_").replace(".","_")
-    
+
     # create logger.
     logger = Util.get_logger("SPOT.INGEST")
 
     # validate the given configuration exists in ingest_conf.json.
-    if not type in master_conf["pipelines"]:
+    if type not in master_conf["pipelines"]:
         logger.error("'{0}' type is not a valid configuration.".format(type));
         sys.exit(1)
 
@@ -60,12 +60,12 @@ def start_collector(type,workers_num,id=None):
     if not Util.validate_data_source(master_conf["pipelines"][type]["type"]):
         logger.error("'{0}' type is not configured. Please check you ingest conf file".format(master_conf["pipelines"][type]["type"]));
         sys.exit(1)
-    
+
     # validate if kerberos authentication is required.
     if os.getenv('KRB_AUTH'):
         kb = Kerberos()
         kb.authenticate()
-    
+
     # kafka server info.
     logger.info("Initializing kafka instance")
     k_server = master_conf["kafka"]['kafka_server']
@@ -74,8 +74,8 @@ def start_collector(type,workers_num,id=None):
     # required zookeeper info.
     zk_server = master_conf["kafka"]['zookeper_server']
     zk_port = master_conf["kafka"]['zookeper_port']
-         
-    topic = "SPOT-INGEST-{0}_{1}".format(type,ingest_id) if not id else id
+
+    topic = id if id else "SPOT-INGEST-{0}_{1}".format(type,ingest_id)
     kafka = KafkaTopic(topic,k_server,k_port,zk_server,zk_port,workers_num)
 
     # create a collector instance based on data source type.

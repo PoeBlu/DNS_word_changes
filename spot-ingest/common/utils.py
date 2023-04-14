@@ -39,7 +39,7 @@ class Util(object):
 
     @classmethod
     def validate_parameter(cls,parameter,message,logger):
-        if parameter == None or parameter == "":
+        if parameter is None or parameter == "":
             logger.error(message)
             sys.exit(1)
 
@@ -107,8 +107,7 @@ class Util(object):
     @classmethod
     def validate_data_source(cls,pipeline_type):
         dirs = os.walk("{0}/pipelines/".format(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))).next()[1]
-        is_type_ok = True if pipeline_type in dirs else False
-        return is_type_ok
+        return pipeline_type in dirs
 
 
 class NewFileEvent(FileSystemEventHandler):

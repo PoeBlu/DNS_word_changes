@@ -49,7 +49,7 @@ def start_worker(type,topic,id,processes=None):
     logger = Util.get_logger("SPOT.INGEST.WORKER")
 
     # validate the given configuration exists in ingest_conf.json.
-    if not type in worker_conf["pipelines"]:
+    if type not in worker_conf["pipelines"]:
         logger.error("'{0}' type is not a valid configuration.".format(type));
         sys.exit(1)
 

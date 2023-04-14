@@ -191,12 +191,14 @@ class OA(object):
         self._flow_scores.insert(0,flow_headers)
 
     def _is_ip_internal(self,ip, ranges):
-        result = 0
-        for row in ranges:
-            if Util.ip_to_int(ip) >= row[0] and Util.ip_to_int(ip) <= row[1]: 
-                result = 1
-                break
-        return result
+        return next(
+            (
+                1
+                for row in ranges
+                if Util.ip_to_int(ip) >= row[0] and Util.ip_to_int(ip) <= row[1]
+            ),
+            0,
+        )
 
         
     def _add_geo_localization(self):
@@ -384,20 +386,20 @@ class OA(object):
             else:srcdict[conn[src_ip_index]] = 1
             if conn[dst_ip_index] in srcdict:srcdict[conn[dst_ip_index]] += 1
             else:srcdict[conn[dst_ip_index]] = 1
-        
-        for (ip,n) in srcdict.items():            
+
+        for (ip,n) in srcdict.items():        
             if n > 1:
-                ip_list = []                
+                ip_list = []
                 sp_connections = iter(self._flow_scores)
                 next(sp_connections)
                 for row in sp_connections:                    
                     if ip == row[2] : ip_list.append(row[3])
-                    if ip == row[3] :ip_list.append(row[2])    
+                    if ip == row[3] :ip_list.append(row[2])
                 ips = list(set(ip_list))
-             
+
                 if len(ips) > 1:
-                    ips_filter = (",".join(str("'{0}'".format(ip)) for ip in ips))
-                    chord_file = "{0}/chord-{1}.tsv".format(self._data_path,ip.replace(".","_"))                     
+                    ips_filter = ",".join("'{0}'".format(ip) for ip in ips)
+                    chord_file = "{0}/chord-{1}.tsv".format(self._data_path,ip.replace(".","_"))
                     ch_query = ("SELECT sip as srcip, dip as dstip, SUM(ibyt) as ibytes, SUM(ipkt) as ipkts from {0}.{1} where y={2} and m={3} \
                         and d={4} and ( (sip='{5}' and dip IN({6})) or (sip IN({6}) and dip='{5}') ) group by sip,dip")
                     self._engine.query(ch_query.format(self._db,self._table_name,yr,mn,dy,ip,ips_filter),chord_file,delimiter="\\t")
@@ -410,19 +412,18 @@ class OA(object):
         dy = self._date[6:]
 
         self._logger.info("Getting ingest summary data for the day")
-        
-        ingest_summary_cols = ["date","total"]		
-        result_rows = []       
+
+        ingest_summary_cols = ["date","total"]
+        result_rows = []
         df_filtered =  pd.DataFrame() 
 
-        ingest_summary_file = "{0}/is_{1}{2}.csv".format(self._ingest_summary_path,yr,mn)			
-        ingest_summary_tmp = "{0}.tmp".format(ingest_summary_file)
+        ingest_summary_file = "{0}/is_{1}{2}.csv".format(self._ingest_summary_path,yr,mn)
         if os.path.isfile(ingest_summary_file):
             df = pd.read_csv(ingest_summary_file, delimiter=',',names=ingest_summary_cols, skiprows=1)
             df_filtered = df[df['date'].str.contains("{0}-{1}-{2}".format(yr, mn, dy)) == False] 
         else:
             df = pd.DataFrame()
-        
+
         # get ingest summary.           
         ingest_summary_qry = ("SELECT tryear, trmonth, trday, trhour, trminute, COUNT(*) total"
                             " FROM {0}.{1} "
@@ -447,6 +448,7 @@ class OA(object):
             df_new = pd.DataFrame([["{0}-{1}-{2} {3}:{4}".format(yr, mn, dy, str(val['trhour']).zfill(2), str(val['trminute']).zfill(2)), int(val[5])] for key,val in result_rows.iterrows()],columns = ingest_summary_cols)						
 
             df_filtered = df_filtered.append(df_new, ignore_index=True)
+            ingest_summary_tmp = "{0}.tmp".format(ingest_summary_file)
             df_filtered.to_csv(ingest_summary_tmp,sep=',', index=False)
 
             os.remove(results_file)

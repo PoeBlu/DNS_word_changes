@@ -66,7 +66,7 @@ class Reputation(object):
             data.append(indicator_request)
             data.append(descriptor_request)
 
-            reputation_dict.update(self._request_reputation(data, val))
+            reputation_dict |= self._request_reputation(data, val)
             data = []
 
         if len(data) > 0:
@@ -81,7 +81,7 @@ class Reputation(object):
             'access_token': token,
             'batch': data
         }
-        
+
         request_body = urllib.urlencode(request_body)
 
         url = "https://graph.facebook.com/"
@@ -92,7 +92,7 @@ class Reputation(object):
             str_response = urllib2.urlopen(request).read()
             response = json.loads(str_response)
         except urllib2.HTTPError as e:
-            self._logger.error("Error calling ThreatExchange in module fb: " + e.message)
+            self._logger.error(f"Error calling ThreatExchange in module fb: {e.message}")
             reputation_dict[name] = self._get_reputation_label('UNKNOWN')
             return reputation_dict
 
@@ -105,9 +105,11 @@ class Reputation(object):
                 return reputation_dict
             if 'body' in row: 
                 try:
-                    row_response = json.loads(row['body']) 
+                    row_response = json.loads(row['body'])
                 except ValueError as e:
-                    self._logger.error("Error reading JSON body response in fb module: " + e.message)
+                    self._logger.error(
+                        f"Error reading JSON body response in fb module: {e.message}"
+                    )
 
                 if 'data' in row_response and row_response['data'] != []: 
                     row_response_data = row_response['data']

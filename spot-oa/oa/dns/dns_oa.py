@@ -167,8 +167,16 @@ class OA(object):
 
 
     def _add_tld_column(self):
-        qry_name_col = self._conf['dns_results_fields']['dns_qry_name'] 
-        self._dns_scores = [conn + [ get_tld("http://" + str(conn[qry_name_col]), fail_silently=True) if "http://" not in str(conn[qry_name_col]) else get_tld(str(conn[qry_name_col]), fail_silently=True)] for conn in self._dns_scores ] 
+        qry_name_col = self._conf['dns_results_fields']['dns_qry_name']
+        self._dns_scores = [
+            conn
+            + [
+                get_tld(f"http://{str(conn[qry_name_col])}", fail_silently=True)
+                if "http://" not in str(conn[qry_name_col])
+                else get_tld(str(conn[qry_name_col]), fail_silently=True)
+            ]
+            for conn in self._dns_scores
+        ] 
   
     def _add_reputation(self):
 
@@ -176,8 +184,8 @@ class OA(object):
         reputation_conf_file = "{0}/components/reputation/reputation_config.json".format(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self._logger.info("Reading reputation configuration file: {0}".format(reputation_conf_file))
         rep_conf = json.loads(open(reputation_conf_file).read())
-        
-        
+
+
         # initialize reputation services.
         self._rep_services = []
         self._logger.info("Initializing reputation services.")
@@ -185,22 +193,20 @@ class OA(object):
             config = rep_conf[service]
             module = __import__("components.reputation.{0}.{0}".format(service), fromlist=['Reputation'])
             self._rep_services.append(module.Reputation(config,self._logger))
-                
+
         # get columns for reputation.
         rep_cols = {}
-        indexes =  [ int(value) for key, value in self._conf["add_reputation"].items()]  
+        indexes =  [ int(value) for key, value in self._conf["add_reputation"].items()]
         self._logger.info("Getting columns to add reputation based on config file: dns_conf.json".format())
         for index in indexes:
-            col_list = []
-            for conn in self._dns_scores:
-                col_list.append(conn[index])            
+            col_list = [conn[index] for conn in self._dns_scores]
             rep_cols[index] = list(set(col_list))
 
         # get reputation per column.
-        self._logger.info("Getting reputation for each service in config")        
+        self._logger.info("Getting reputation for each service in config")
         rep_services_results = []
 
- 
+
         if self._rep_services :
             for key,value in rep_cols.items():
                 rep_services_results = [ rep_service.check(None,value) for rep_service in self._rep_services]
@@ -358,21 +364,18 @@ class OA(object):
         dy = self._date[6:]
 
         self._logger.info("Getting ingest summary data for the day")
-        
-        ingest_summary_cols = ["date","total"]		
-        result_rows = []        
+
+        result_rows = []
         df_filtered =  pd.DataFrame()
 
-        ingest_summary_file = "{0}/is_{1}{2}.csv".format(self._ingest_summary_path,yr,mn)			
-        ingest_summary_tmp = "{0}.tmp".format(ingest_summary_file)
-
+        ingest_summary_file = "{0}/is_{1}{2}.csv".format(self._ingest_summary_path,yr,mn)
         if os.path.isfile(ingest_summary_file):
         	df = pd.read_csv(ingest_summary_file, delimiter=',')
             #discards previous rows from the same date
         	df_filtered = df[df['date'].str.contains("{0}-{1}-{2}".format(yr, mn, dy)) == False] 
         else:
         	df = pd.DataFrame()
-            
+
         # get ingest summary.
         ingest_summary_qry = ("SELECT frame_time, COUNT(*) as total "
                                     " FROM {0}.{1}"
@@ -384,23 +387,41 @@ class OA(object):
                                     " GROUP BY frame_time;") 
 
         ingest_summary_qry = ingest_summary_qry.format(self._db,self._table_name, yr, mn, dy)
-        
+
         results_file = "{0}/results_{1}.csv".format(self._ingest_summary_path,self._date)
         self._engine.query(ingest_summary_qry,output_file=results_file,delimiter=",")
 
 
-        if os.path.isfile(results_file):        
+        if os.path.isfile(results_file):    
             df_results = pd.read_csv(results_file, delimiter=',') 
 
+            ingest_summary_cols = ["date","total"]
             # Forms a new dataframe splitting the minutes from the time column
-            df_new = pd.DataFrame([["{0}-{1}-{2} {3}:{4}".format(yr, mn, dy,val['frame_time'].split(" ")[3].split(":")[0].zfill(2),val['frame_time'].split(" ")[3].split(":")[1].zfill(2)), int(val['total']) if not math.isnan(val['total']) else 0 ] for key,val in df_results.iterrows()],columns = ingest_summary_cols)
-    
+            df_new = pd.DataFrame(
+                [
+                    [
+                        "{0}-{1}-{2} {3}:{4}".format(
+                            yr,
+                            mn,
+                            dy,
+                            val['frame_time'].split(" ")[3].split(":")[0].zfill(2),
+                            val['frame_time'].split(" ")[3].split(":")[1].zfill(2),
+                        ),
+                        0 if math.isnan(val['total']) else int(val['total']),
+                    ]
+                    for key, val in df_results.iterrows()
+                ],
+                columns=ingest_summary_cols,
+            )
+
             #Groups the data by minute 
             sf = df_new.groupby(by=['date'])['total'].sum()
-        
+
             df_per_min = pd.DataFrame({'date':sf.index, 'total':sf.values})
-            
+
             df_final = df_filtered.append(df_per_min, ignore_index=True)
+            ingest_summary_tmp = "{0}.tmp".format(ingest_summary_file)
+
             df_final.to_csv(ingest_summary_tmp,sep=',', index=False)
 
             os.remove(results_file)

@@ -88,11 +88,11 @@ class Collector(object):
        
         if self._watcher.HasFiles:
             
-            for x in range(0,self._processes):
+            for _ in range(self._processes):
                 file = self._watcher.GetNextFile()
                 resutl = self._pool.apply_async(ingest_file,args=(file,self._message_size,self._kafka_topic.Topic,self._kafka_topic.BootstrapServers))
                 #resutl.get() # to debug add try and catch.
-                if  not self._watcher.HasFiles: break    
+                if  not self._watcher.HasFiles: break
         return True
 
 

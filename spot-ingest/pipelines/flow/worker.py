@@ -76,7 +76,7 @@ class Worker(object):
         file_name = file_name_parts[len(file_name_parts)-1]
 
         flow_date = file_name.split('.')[1]
-        flow_year = flow_date[0:4]
+        flow_year = flow_date[:4]
         flow_month = flow_date[4:6]
         flow_day = flow_date[6:8]
         flow_hour = flow_date[8:10]

@@ -77,7 +77,7 @@ class Worker(object):
 
         binary_hour = file_name_parts[len(file_name_parts)-2]
         binary_date_path = file_name_parts[len(file_name_parts)-3]
-        binary_year = binary_date_path[0:4]
+        binary_year = binary_date_path[:4]
         binary_month = binary_date_path[4:6]
         binary_day = binary_date_path[6:8]
 

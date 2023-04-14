@@ -53,7 +53,7 @@ class Reputation(object):
         if not os.path.isfile(self._gti_rest_client_path):
             self._logger.error("There is not GTI client configured. Please check configuration file.")
             return reputation_dict
-        
+
         if ips is not None:
             values = ips
             op = "ip"
@@ -86,9 +86,8 @@ class Reputation(object):
             query = ",".join(queries)
             command = command.replace(self.QUERY_PLACEHOLDER, query)
             responses += self._call_gti(command, len(queries))
-        
-        ip_counter = 0
-        for query_resp in responses: 
+
+        for ip_counter, query_resp in enumerate(responses): 
             if self.AFLAG_KEY in query_resp or self.REP_KEY not in query_resp :
                 reputation_dict[values[ip_counter]] = self._get_reputation_label(self.DEFAULT_REP)
             else:
@@ -101,8 +100,6 @@ class Reputation(object):
                 reputation = int(reputation)
                 reputation_dict[values[ip_counter]] = self._get_reputation_label(reputation) + category_name_group
 
-            ip_counter += 1 
-
         return reputation_dict
 
 
@@ -113,7 +110,7 @@ class Reputation(object):
             return "gti:Unverified:-1"
         elif 30 <= reputation < 50:
             return "gti:Medium:2"
-        elif reputation >= 50:
+        else:
             return "gti:High:3" 
 
 
@@ -121,7 +118,7 @@ class Reputation(object):
         if os.path.isfile(self._category_file): 
             with open(self._category_file) as f:
                 csv_reader = csv.reader(f)
-                self._category_dict = dict((row[0], row[1] + '|' + row[2]) for row in csv_reader)
+                self._category_dict = {row[0]: f'{row[1]}|{row[2]}' for row in csv_reader}
 
 
     def _get_category_name_group(self, category):
@@ -138,16 +135,13 @@ class Reputation(object):
     def _call_gti(self, command, num_values):
         try:
             response_json = check_output(command, shell=True)
-            result_dict = json.loads(response_json[0:len(response_json) - 1])
-            responses = result_dict['a']
-            return responses
-
+            result_dict = json.loads(response_json[:-1])
+            return result_dict['a']
         except CalledProcessError as e:
-            self._logger.error("Error calling McAfee GTI client in gti module: " + e.output)
-            error_resp = [{self.REP_KEY: self.DEFAULT_REP}] * num_values
-            return error_resp
-
+            self._logger.error(
+                f"Error calling McAfee GTI client in gti module: {e.output}"
+            )
+            return [{self.REP_KEY: self.DEFAULT_REP}] * num_values
         except ValueError as e:
-            self._logger.error("Error reading JSON response in gti module: " + e.message)
-            error_resp = [{self.REP_KEY: self.DEFAULT_REP}] * num_values
-            return error_resp
+            self._logger.error(f"Error reading JSON response in gti module: {e.message}")
+            return [{self.REP_KEY: self.DEFAULT_REP}] * num_values
